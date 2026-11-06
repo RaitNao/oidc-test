@@ -1,0 +1,74 @@
+name: OIDC registry smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      org:
+        description: Registry namespace owning the image
+        required: true
+        type: string
+      connection_id:
+        description: Connection selector configured at the token service
+        required: true
+        type: string
+      connection_parameter:
+        description: Token exchange form field name for the connection selector
+        required: true
+        type: string
+      oidc_audience:
+        description: GitHub ID token audience
+        required: true
+        type: string
+      exchange_audience:
+        description: STS product audience
+        required: true
+        type: string
+      sts_url:
+        description: STS base URL
+        required: true
+        type: string
+      registry:
+        description: Registry hostname (no scheme)
+        required: true
+        type: string
+      image:
+        description: Image path within the org (optionally team/image)
+        default: alpine
+        required: true
+        type: string
+      tag:
+        description: Image tag
+        default: '3.17'
+        required: true
+        type: string
+      runner:
+        description: Runner label with access to the configured endpoints
+        default: ubuntu-latest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  manifest:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Exchange token, Docker login, and fetch manifest
+        shell: bash
+        env:
+          REGISTRY_ORG: ${{ inputs.org }}
+          CONNECTION_ID: ${{ inputs.connection_id }}
+          CONNECTION_PARAMETER: ${{ inputs.connection_parameter }}
+          OIDC_AUDIENCE: ${{ inputs.oidc_audience }}
+          EXCHANGE_AUDIENCE: ${{ inputs.exchange_audience }}
+          STS_URL: ${{ inputs.sts_url }}
+          REGISTRY: ${{ inputs.registry }}
+          IMAGE: ${{ inputs.image }}
+          TAG: ${{ inputs.tag }}
+        run: bash scripts/oidc-smoke.sh
